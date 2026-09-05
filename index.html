@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Diagnóstico de rede — Moto G75</title>
+<style>
+  :root{
+    --bg: #12181f;
+    --panel: #1a222b;
+    --panel-line: #2a343f;
+    --text: #c9d1d9;
+    --text-dim: #7d8794;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Roboto Mono", monospace;
+    --sans: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+    --good: #7fe787;
+    --warn: #e8a33d;
+    --bad: #e8555c;
+    --idle: #4d5a68;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    min-height:100vh;
+    padding:20px 16px 40px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:480px;margin:0 auto;}
+
+  header{margin-bottom:20px;}
+  header h1{
+    font-size:19px;
+    font-weight:650;
+    margin:0 0 4px;
+    letter-spacing:-0.01em;
+  }
+  header p{
+    font-size:13.5px;
+    color:var(--text-dim);
+    margin:0;
+    line-height:1.5;
+  }
+
+  .card{
+    background:var(--panel);
+    border:1px solid var(--panel-line);
+    border-radius:10px;
+    padding:18px;
+    margin-bottom:14px;
+  }
+
+  .status-line{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin-bottom:14px;
+  }
+  .status-line .dot{
+    display:inline-block;
+    width:9px;height:9px;
+    border-radius:50%;
+    margin-right:8px;
+    background:var(--idle);
+    position:relative;
+    top:-1px;
+  }
+  .status-line .label{
+    font-size:12.5px;
+    color:var(--text-dim);
+  }
+
+  .readout{
+    font-family:var(--mono);
+    font-size:42px;
+    font-weight:600;
+    line-height:1;
+    letter-spacing:-0.01em;
+    color:var(--idle);
+    margin-bottom:10px;
+  }
+  .sub-readout{
+    font-family:var(--mono);
+    font-size:13px;
+    color:var(--text-dim);
+    display:flex;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+  .sub-readout span b{color:var(--text);font-weight:600;}
+
+  .btn-row{display:flex;gap:10px;margin-top:16px;}
+  button{
+    font-family:var(--sans);
+    font-size:14px;
+    font-weight:600;
+    border-radius:8px;
+    border:1px solid var(--panel-line);
+    padding:11px 14px;
+    cursor:pointer;
+    flex:1;
+    background:transparent;
+    color:var(--text);
+  }
+  button.primary{
+    background:var(--good);
+    border-color:var(--good);
+    color:#0d1410;
+  }
+  button.primary.on{
+    background:var(--bad);
+    border-color:var(--bad);
+    color:#1a0d0e;
+  }
+  button:active{opacity:0.8;}
+  button.small{flex:none;padding:8px 12px;font-size:12.5px;font-weight:600;}
+
+  .log-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:10px;
+  }
+  .log-head h2{
+    font-size:13px;
+    text-transform:none;
+    margin:0;
+    color:var(--text-dim);
+    font-weight:600;
+  }
+  .log-head .count{
+    font-family:var(--mono);
+    font-size:12.5px;
+    color:var(--text-dim);
+  }
+
+  .log-list{
+    max-height:340px;
+    overflow-y:auto;
+    display:flex;
+    flex-direction:column;
+    gap:0;
+  }
+  .log-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:8px 0;
+    border-bottom:1px solid var(--panel-line);
+    font-family:var(--mono);
+    font-size:12.5px;
+  }
+  .log-row:last-child{border-bottom:none;}
+  .log-row .dot{
+    width:7px;height:7px;border-radius:50%;flex:none;
+  }
+  .log-row .time{color:var(--text-dim);flex:none;width:58px;}
+  .log-row .desc{color:var(--text);flex:1;}
+  .log-row .lat{color:var(--text-dim);flex:none;}
+  .log-row.manual .desc{color:var(--warn);}
+
+  .empty{
+    color:var(--text-dim);
+    font-size:13px;
+    padding:20px 0;
+    text-align:center;
+  }
+
+  footer{
+    display:flex;
+    gap:8px;
+    margin-top:14px;
+  }
+
+  .note{
+    font-size:12px;
+    color:var(--text-dim);
+    line-height:1.6;
+    margin-top:14px;
+  }
+
+  .toast{
+    position:fixed;
+    bottom:20px;left:50%;
+    transform:translateX(-50%);
+    background:var(--panel);
+    border:1px solid var(--panel-line);
+    padding:9px 16px;
+    border-radius:20px;
+    font-size:13px;
+    opacity:0;
+    transition:opacity 0.25s;
+    pointer-events:none;
+  }
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Monitor de sinal</h1>
+    <p>Moto G75, operadora Claro. Deixe esta página aberta para registrar automaticamente quando o sinal cai ou volta.</p>
+  </header>
+
+  <div class="card">
+    <div class="status-line">
+      <span class="label"><span class="dot" id="statusDot"></span><span id="statusLabel">Parado</span></span>
+      <span class="label" id="clock">--:--:--</span>
+    </div>
+    <div class="readout" id="readout">—</div>
+    <div class="sub-readout">
+      <span>download <b id="downlink">—</b></span>
+      <span>latência <b id="rtt">—</b></span>
+      <span>desde <b id="since">—</b></span>
+    </div>
+    <div class="btn-row">
+      <button class="primary" id="toggleBtn">Iniciar monitoramento</button>
+      <button id="manualBtn">Marcar perda agora</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="log-head">
+      <h2>Registro</h2>
+      <span class="count" id="logCount">0 eventos</span>
+    </div>
+    <div class="log-list" id="logList">
+      <div class="empty" id="logEmpty">Nenhum evento ainda. Inicie o monitoramento acima.</div>
+    </div>
+    <footer>
+      <button class="small" id="copyBtn">Copiar registro</button>
+      <button class="small" id="downloadBtn">Baixar .txt</button>
+      <button class="small" id="clearBtn">Limpar</button>
+    </footer>
+  </div>
+
+  <p class="note">
+    O navegador não consegue ler as barras de sinal do Android diretamente, então este monitor combina três coisas: o status de conexão do sistema, os dados que a rede reporta ao navegador (tipo de conexão, velocidade, latência) e um teste ativo a cada poucos segundos, tentando de fato buscar algo pela internet. Quando você notar visualmente o sinal sumindo no topo da tela, toque em "Marcar perda agora" para deixar isso registrado no mesmo horário — isso ajuda a comparar os dois registros depois.
+  </p>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'g75-diagnostico-log';
+  const CHECK_URL = 'https://www.gstatic.com/generate_204';
+  const CHECK_INTERVAL_MS = 6000;
+  const CHECK_TIMEOUT_MS = 5000;
+
+  let log = [];
+  let monitoring = false;
+  let timer = null;
+  let startedAt = null;
+  let clockTimer = null;
+
+  const el = {
+    statusDot: document.getElementById('statusDot'),
+    statusLabel: document.getElementById('statusLabel'),
+    clock: document.getElementById('clock'),
+    readout: document.getElementById('readout'),
+    downlink: document.getElementById('downlink'),
+    rtt: document.getElementById('rtt'),
+    since: document.getElementById('since'),
+    toggleBtn: document.getElementById('toggleBtn'),
+    manualBtn: document.getElementById('manualBtn'),
+    logList: document.getElementById('logList'),
+    logEmpty: document.getElementById('logEmpty'),
+    logCount: document.getElementById('logCount'),
+    copyBtn: document.getElementById('copyBtn'),
+    downloadBtn: document.getElementById('downloadBtn'),
+    clearBtn: document.getElementById('clearBtn'),
+    toast: document.getElementById('toast'),
+  };
+
+  function pad(n){ return n.toString().padStart(2,'0'); }
+  function timeStr(d){ return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds()); }
+
+  function showToast(msg){
+    el.toast.textContent = msg;
+    el.toast.classList.add('show');
+    setTimeout(()=> el.toast.classList.remove('show'), 1800);
+  }
+
+  function loadLog(){
+    try{
+      const res = localStorage.getItem(STORAGE_KEY);
+      if(res){
+        log = JSON.parse(res);
+      }
+    }catch(e){
+      log = [];
+    }
+    renderLog();
+  }
+
+  function saveLog(){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(log));
+    }catch(e){
+      // se falhar, o registro continua funcionando só na tela desta sessão
+    }
+  }
+
+  function addEntry(entry){
+    log.unshift(entry);
+    if(log.length > 500) log = log.slice(0, 500);
+    renderLog();
+    saveLog();
+  }
+
+  function renderLog(){
+    el.logCount.textContent = log.length + (log.length === 1 ? ' evento' : ' eventos');
+    if(log.length === 0){
+      el.logList.innerHTML = '';
+      el.logList.appendChild(el.logEmpty);
+      return;
+    }
+    el.logList.innerHTML = '';
+    log.forEach(entry => {
+      const row = document.createElement('div');
+      row.className = 'log-row' + (entry.manual ? ' manual' : '');
+      const dotColor = entry.status === 'ok' ? 'var(--good)' : (entry.status === 'warn' ? 'var(--warn)' : 'var(--bad)');
+      row.innerHTML =
+        '<span class="dot" style="background:' + dotColor + '"></span>' +
+        '<span class="time">' + entry.time + '</span>' +
+        '<span class="desc">' + entry.desc + '</span>' +
+        '<span class="lat">' + (entry.lat || '') + '</span>';
+      el.logList.appendChild(row);
+    });
+  }
+
+  function updateReadout(state, big, downlink, rtt){
+    el.readout.textContent = big;
+    el.readout.style.color = state === 'ok' ? 'var(--good)' : (state === 'warn' ? 'var(--warn)' : (state === 'bad' ? 'var(--bad)' : 'var(--idle)'));
+    el.downlink.textContent = downlink || '—';
+    el.rtt.textContent = rtt || '—';
+  }
+
+  function getConnectionInfo(){
+    const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if(!c) return null;
+    return {
+      effectiveType: c.effectiveType || null,
+      downlink: (typeof c.downlink === 'number') ? c.downlink.toFixed(1) + ' Mbps' : null,
+      rtt: (typeof c.rtt === 'number') ? c.rtt + ' ms' : null,
+    };
+  }
+
+  async function activeCheck(){
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), CHECK_TIMEOUT_MS);
+    const t0 = performance.now();
+    try{
+      await fetch(CHECK_URL + '?t=' + Date.now(), {
+        mode: 'no-cors',
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      return { ok: true, ms: Math.round(performance.now() - t0) };
+    }catch(e){
+      clearTimeout(timeoutId);
+      return { ok: false, ms: null };
+    }
+  }
+
+  async function runCheck(){
+    const conn = getConnectionInfo();
+    const result = await activeCheck();
+    const now = new Date();
+    const time = timeStr(now);
+
+    if(!result.ok){
+      updateReadout('bad', 'SEM CONEXÃO', conn && conn.downlink, conn && conn.rtt);
+      el.statusDot.style.background = 'var(--bad)';
+      el.statusLabel.textContent = 'Falhou';
+      addEntry({ time, status: 'bad', desc: 'teste ativo falhou (sem resposta em ' + (CHECK_TIMEOUT_MS/1000) + 's)', lat: '' , manual:false});
+      return;
+    }
+
+    let big = conn && conn.effectiveType ? conn.effectiveType.toUpperCase() : 'ONLINE';
+    let state = 'ok';
+    if(conn && (conn.effectiveType === '2g' || conn.effectiveType === 'slow-2g')) state = 'warn';
+    if(conn && conn.effectiveType === '3g') state = 'warn';
+
+    updateReadout(state, big, conn && conn.downlink, conn && conn.rtt);
+    el.statusDot.style.background = state === 'ok' ? 'var(--good)' : 'var(--warn)';
+    el.statusLabel.textContent = 'Monitorando';
+    addEntry({
+      time,
+      status: state,
+      desc: 'ok — ' + big + (conn && conn.downlink ? ', ' + conn.downlink : ''),
+      lat: result.ms + ' ms',
+      manual: false
+    });
+  }
+
+  function startMonitoring(){
+    monitoring = true;
+    startedAt = new Date();
+    el.toggleBtn.textContent = 'Parar monitoramento';
+    el.toggleBtn.classList.add('on');
+    el.statusLabel.textContent = 'Monitorando';
+    runCheck();
+    timer = setInterval(runCheck, CHECK_INTERVAL_MS);
+  }
+
+  function stopMonitoring(){
+    monitoring = false;
+    clearInterval(timer);
+    timer = null;
+    el.toggleBtn.textContent = 'Iniciar monitoramento';
+    el.toggleBtn.classList.remove('on');
+    el.statusDot.style.background = 'var(--idle)';
+    el.statusLabel.textContent = 'Parado';
+  }
+
+  el.toggleBtn.addEventListener('click', () => {
+    if(monitoring) stopMonitoring(); else startMonitoring();
+  });
+
+  el.manualBtn.addEventListener('click', () => {
+    const now = new Date();
+    addEntry({ time: timeStr(now), status: 'bad', desc: 'marcado manualmente: sinal sumiu na tela', lat: '', manual: true });
+    showToast('Registrado');
+  });
+
+  el.copyBtn.addEventListener('click', async () => {
+    const text = log.map(e => e.time + '  ' + e.status.toUpperCase() + '  ' + e.desc + (e.lat ? '  ' + e.lat : '')).join('\n');
+    try{
+      await navigator.clipboard.writeText(text || 'Sem eventos registrados ainda.');
+      showToast('Copiado');
+    }catch(e){
+      showToast('Não foi possível copiar automaticamente');
+    }
+  });
+
+  el.downloadBtn.addEventListener('click', () => {
+    const text = log.map(e => e.time + '  ' + e.status.toUpperCase() + '  ' + e.desc + (e.lat ? '  ' + e.lat : '')).join('\n');
+    const blob = new Blob([text || 'Sem eventos registrados ainda.'], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'diagnostico-g75-' + Date.now() + '.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  el.clearBtn.addEventListener('click', () => {
+    log = [];
+    renderLog();
+    saveLog();
+    showToast('Registro limpo');
+  });
+
+  window.addEventListener('online', () => {
+    if(monitoring) addEntry({ time: timeStr(new Date()), status: 'ok', desc: 'sistema reportou: conexão voltou', lat: '', manual: false });
+  });
+  window.addEventListener('offline', () => {
+    if(monitoring) addEntry({ time: timeStr(new Date()), status: 'bad', desc: 'sistema reportou: conexão perdida', lat: '', manual: false });
+  });
+
+  clockTimer = setInterval(() => {
+    const now = new Date();
+    el.clock.textContent = timeStr(now);
+    if(startedAt){
+      const mins = Math.floor((now - startedAt) / 60000);
+      el.since.textContent = mins < 1 ? 'agora' : (mins + ' min');
+    }
+  }, 1000);
+
+  loadLog();
+})();
+</script>
+</body>
+</html>
