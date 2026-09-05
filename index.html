@@ -1,483 +1,1550 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
+<!DOCTYPE html><html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Diagnóstico de rede — Moto G75</title>
-<style>
-  :root{
-    --bg: #12181f;
-    --panel: #1a222b;
-    --panel-line: #2a343f;
-    --text: #c9d1d9;
-    --text-dim: #7d8794;
-    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Roboto Mono", monospace;
-    --sans: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
-    --good: #7fe787;
-    --warn: #e8a33d;
-    --bad: #e8555c;
-    --idle: #4d5a68;
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
-  body{
-    background:var(--bg);
-    color:var(--text);
-    font-family:var(--sans);
-    min-height:100vh;
-    padding:20px 16px 40px;
-    -webkit-font-smoothing:antialiased;
-  }
-  .wrap{max-width:480px;margin:0 auto;}
+<meta name="theme-color" content="#0b1118">
+<meta name="description" content="Monitor profissional de conexão e qualidade de rede para dispositivos móveis."><title>NetMonitor — Diagnóstico de Rede</title><style>
+:root{
+  --bg:#080d13;
+  --panel:#101720;
+  --panel-2:#151e28;
+  --border:#263342;
 
-  header{margin-bottom:20px;}
-  header h1{
-    font-size:19px;
-    font-weight:650;
-    margin:0 0 4px;
-    letter-spacing:-0.01em;
-  }
-  header p{
-    font-size:13.5px;
-    color:var(--text-dim);
-    margin:0;
-    line-height:1.5;
+  --text:#e7edf3;
+  --muted:#8391a0;
+
+  --green:#43e58c;
+  --yellow:#f3b64b;
+  --red:#ff5c67;
+  --blue:#55a9ff;
+
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Roboto Mono",monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+}
+
+*{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
+
+html{
+  background:var(--bg);
+  color-scheme:dark;
+}
+
+body{
+  margin:0;
+  min-height:100vh;
+  background:
+    radial-gradient(circle at top,#172332 0,#080d13 45%);
+  color:var(--text);
+  font-family:var(--sans);
+  padding:
+    max(18px,env(safe-area-inset-top))
+    16px
+    max(35px,env(safe-area-inset-bottom));
+}
+
+button{
+  font:inherit;
+}
+
+.container{
+  width:100%;
+  max-width:620px;
+  margin:auto;
+}
+
+/* HEADER */
+
+header{
+  padding:10px 2px 22px;
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.logo{
+  width:42px;
+  height:42px;
+  display:grid;
+  place-items:center;
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:var(--panel);
+  font-size:20px;
+}
+
+h1{
+  margin:0;
+  font-size:20px;
+  font-weight:700;
+  letter-spacing:-.02em;
+}
+
+.subtitle{
+  margin:4px 0 0;
+  color:var(--muted);
+  font-size:13px;
+}
+
+/* CARDS */
+
+.card{
+  background:rgba(16,23,32,.94);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:18px;
+  margin-bottom:14px;
+  box-shadow:0 10px 35px rgba(0,0,0,.15);
+}
+
+.card-title{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:18px;
+}
+
+.card-title h2{
+  margin:0;
+  font-size:14px;
+  font-weight:650;
+}
+
+.badge{
+  border:1px solid var(--border);
+  border-radius:999px;
+  padding:5px 9px;
+  color:var(--muted);
+  font-size:11px;
+  font-family:var(--mono);
+}
+
+/* STATUS */
+
+.status{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:var(--muted);
+  font-size:12px;
+}
+
+.status-dot{
+  width:9px;
+  height:9px;
+  border-radius:50%;
+  background:var(--muted);
+}
+
+.status-dot.online{
+  background:var(--green);
+  box-shadow:0 0 12px rgba(67,229,140,.55);
+}
+
+.status-dot.warning{
+  background:var(--yellow);
+}
+
+.status-dot.offline{
+  background:var(--red);
+  box-shadow:0 0 12px rgba(255,92,103,.45);
+}
+
+/* MAIN READOUT */
+
+.main-readout{
+  text-align:center;
+  padding:14px 0 22px;
+}
+
+.network-type{
+  font-family:var(--mono);
+  font-size:46px;
+  font-weight:750;
+  letter-spacing:-.04em;
+  margin-bottom:7px;
+}
+
+.network-type.online{
+  color:var(--green);
+}
+
+.network-type.warning{
+  color:var(--yellow);
+}
+
+.network-type.offline{
+  color:var(--red);
+}
+
+.connection-text{
+  color:var(--muted);
+  font-size:13px;
+}
+
+/* METRICS */
+
+.metrics{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:9px;
+}
+
+.metric{
+  background:var(--panel-2);
+  border:1px solid var(--border);
+  border-radius:11px;
+  padding:12px 9px;
+  min-width:0;
+}
+
+.metric-label{
+  color:var(--muted);
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  margin-bottom:6px;
+}
+
+.metric-value{
+  font-family:var(--mono);
+  font-size:14px;
+  font-weight:650;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+/* BUTTONS */
+
+.buttons{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:14px;
+}
+
+button{
+  border:1px solid var(--border);
+  border-radius:11px;
+  padding:12px 10px;
+  background:var(--panel-2);
+  color:var(--text);
+  cursor:pointer;
+  font-size:13px;
+  font-weight:650;
+  min-height:46px;
+}
+
+button:active{
+  transform:scale(.98);
+}
+
+button.primary{
+  background:var(--green);
+  border-color:var(--green);
+  color:#07120c;
+}
+
+button.primary.stop{
+  background:var(--red);
+  border-color:var(--red);
+  color:#190709;
+}
+
+button.warning{
+  border-color:#654b22;
+  color:var(--yellow);
+}
+
+/* DEVICE */
+
+.device-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+
+.info{
+  background:var(--panel-2);
+  border:1px solid var(--border);
+  padding:12px;
+  border-radius:11px;
+}
+
+.info small{
+  display:block;
+  color:var(--muted);
+  font-size:10px;
+  margin-bottom:5px;
+}
+
+.info strong{
+  font-family:var(--mono);
+  font-size:12px;
+  word-break:break-word;
+}
+
+/* LOG */
+
+.log-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:10px;
+}
+
+.log-count{
+  font-family:var(--mono);
+  color:var(--muted);
+  font-size:11px;
+}
+
+.log{
+  max-height:350px;
+  overflow:auto;
+  border-top:1px solid var(--border);
+}
+
+.empty{
+  text-align:center;
+  color:var(--muted);
+  padding:28px 10px;
+  font-size:12px;
+}
+
+.log-row{
+  display:grid;
+  grid-template-columns:8px 58px 1fr auto;
+  gap:9px;
+  align-items:center;
+  padding:10px 2px;
+  border-bottom:1px solid var(--border);
+  font-family:var(--mono);
+  font-size:11px;
+}
+
+.log-dot{
+  width:7px;
+  height:7px;
+  border-radius:50%;
+}
+
+.log-time{
+  color:var(--muted);
+}
+
+.log-description{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.log-latency{
+  color:var(--muted);
+}
+
+.manual{
+  color:var(--yellow);
+}
+
+/* ACTIONS */
+
+.actions{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin-top:12px;
+}
+
+.actions button{
+  min-height:40px;
+  padding:8px 5px;
+  font-size:11px;
+}
+
+/* NOTE */
+
+.note{
+  color:var(--muted);
+  font-size:11.5px;
+  line-height:1.65;
+  margin:18px 2px 0;
+}
+
+/* TOAST */
+
+.toast{
+  position:fixed;
+  left:50%;
+  bottom:max(20px,env(safe-area-inset-bottom));
+  transform:translate(-50%,20px);
+  background:#18222d;
+  border:1px solid var(--border);
+  border-radius:999px;
+  padding:10px 17px;
+  font-size:12px;
+  opacity:0;
+  pointer-events:none;
+  transition:.25s;
+  z-index:20;
+}
+
+.toast.show{
+  opacity:1;
+  transform:translate(-50%,0);
+}
+
+/* RESPONSIVE */
+
+@media(max-width:380px){
+
+  body{
+    padding-left:11px;
+    padding-right:11px;
   }
 
   .card{
-    background:var(--panel);
-    border:1px solid var(--panel-line);
-    border-radius:10px;
-    padding:18px;
-    margin-bottom:14px;
+    padding:14px;
   }
 
-  .status-line{
-    display:flex;
-    align-items:baseline;
-    justify-content:space-between;
-    margin-bottom:14px;
-  }
-  .status-line .dot{
-    display:inline-block;
-    width:9px;height:9px;
-    border-radius:50%;
-    margin-right:8px;
-    background:var(--idle);
-    position:relative;
-    top:-1px;
-  }
-  .status-line .label{
-    font-size:12.5px;
-    color:var(--text-dim);
+  .network-type{
+    font-size:38px;
   }
 
-  .readout{
-    font-family:var(--mono);
-    font-size:42px;
-    font-weight:600;
-    line-height:1;
-    letter-spacing:-0.01em;
-    color:var(--idle);
-    margin-bottom:10px;
-  }
-  .sub-readout{
-    font-family:var(--mono);
-    font-size:13px;
-    color:var(--text-dim);
-    display:flex;
-    gap:16px;
-    flex-wrap:wrap;
-  }
-  .sub-readout span b{color:var(--text);font-weight:600;}
-
-  .btn-row{display:flex;gap:10px;margin-top:16px;}
-  button{
-    font-family:var(--sans);
-    font-size:14px;
-    font-weight:600;
-    border-radius:8px;
-    border:1px solid var(--panel-line);
-    padding:11px 14px;
-    cursor:pointer;
-    flex:1;
-    background:transparent;
-    color:var(--text);
-  }
-  button.primary{
-    background:var(--good);
-    border-color:var(--good);
-    color:#0d1410;
-  }
-  button.primary.on{
-    background:var(--bad);
-    border-color:var(--bad);
-    color:#1a0d0e;
-  }
-  button:active{opacity:0.8;}
-  button.small{flex:none;padding:8px 12px;font-size:12.5px;font-weight:600;}
-
-  .log-head{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:10px;
-  }
-  .log-head h2{
-    font-size:13px;
-    text-transform:none;
-    margin:0;
-    color:var(--text-dim);
-    font-weight:600;
-  }
-  .log-head .count{
-    font-family:var(--mono);
-    font-size:12.5px;
-    color:var(--text-dim);
+  .metrics{
+    gap:6px;
   }
 
-  .log-list{
-    max-height:340px;
-    overflow-y:auto;
-    display:flex;
-    flex-direction:column;
-    gap:0;
-  }
-  .log-row{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    padding:8px 0;
-    border-bottom:1px solid var(--panel-line);
-    font-family:var(--mono);
-    font-size:12.5px;
-  }
-  .log-row:last-child{border-bottom:none;}
-  .log-row .dot{
-    width:7px;height:7px;border-radius:50%;flex:none;
-  }
-  .log-row .time{color:var(--text-dim);flex:none;width:58px;}
-  .log-row .desc{color:var(--text);flex:1;}
-  .log-row .lat{color:var(--text-dim);flex:none;}
-  .log-row.manual .desc{color:var(--warn);}
-
-  .empty{
-    color:var(--text-dim);
-    font-size:13px;
-    padding:20px 0;
-    text-align:center;
+  .metric{
+    padding:10px 7px;
   }
 
-  footer{
-    display:flex;
-    gap:8px;
-    margin-top:14px;
-  }
-
-  .note{
+  .metric-value{
     font-size:12px;
-    color:var(--text-dim);
-    line-height:1.6;
-    margin-top:14px;
   }
 
-  .toast{
-    position:fixed;
-    bottom:20px;left:50%;
-    transform:translateX(-50%);
-    background:var(--panel);
-    border:1px solid var(--panel-line);
-    padding:9px 16px;
-    border-radius:20px;
-    font-size:13px;
-    opacity:0;
-    transition:opacity 0.25s;
-    pointer-events:none;
+  .buttons{
+    grid-template-columns:1fr;
   }
-  .toast.show{opacity:1;}
-</style>
-</head>
-<body>
-<div class="wrap">
 
-  <header>
-    <h1>Monitor de sinal</h1>
-    <p>Moto G75, operadora Claro. Deixe esta página aberta para registrar automaticamente quando o sinal cai ou volta.</p>
-  </header>
+}
 
-  <div class="card">
-    <div class="status-line">
-      <span class="label"><span class="dot" id="statusDot"></span><span id="statusLabel">Parado</span></span>
-      <span class="label" id="clock">--:--:--</span>
-    </div>
-    <div class="readout" id="readout">—</div>
-    <div class="sub-readout">
-      <span>download <b id="downlink">—</b></span>
-      <span>latência <b id="rtt">—</b></span>
-      <span>desde <b id="since">—</b></span>
-    </div>
-    <div class="btn-row">
-      <button class="primary" id="toggleBtn">Iniciar monitoramento</button>
-      <button id="manualBtn">Marcar perda agora</button>
-    </div>
-  </div>
+@media(min-width:700px){
 
-  <div class="card">
-    <div class="log-head">
-      <h2>Registro</h2>
-      <span class="count" id="logCount">0 eventos</span>
-    </div>
-    <div class="log-list" id="logList">
-      <div class="empty" id="logEmpty">Nenhum evento ainda. Inicie o monitoramento acima.</div>
-    </div>
-    <footer>
-      <button class="small" id="copyBtn">Copiar registro</button>
-      <button class="small" id="downloadBtn">Baixar .txt</button>
-      <button class="small" id="clearBtn">Limpar</button>
-    </footer>
-  </div>
+  body{
+    padding-top:35px;
+  }
 
-  <p class="note">
-    O navegador não consegue ler as barras de sinal do Android diretamente, então este monitor combina três coisas: o status de conexão do sistema, os dados que a rede reporta ao navegador (tipo de conexão, velocidade, latência) e um teste ativo a cada poucos segundos, tentando de fato buscar algo pela internet. Quando você notar visualmente o sinal sumindo no topo da tela, toque em "Marcar perda agora" para deixar isso registrado no mesmo horário — isso ajuda a comparar os dois registros depois.
-  </p>
+}
+</style></head><body><div class="container"><header>  <div class="brand"><div class="logo">⌁</div>
 
+<div>
+  <h1>NetMonitor</h1>
+  <p class="subtitle">Diagnóstico de conexão móvel</p>
 </div>
 
-<div class="toast" id="toast"></div>
+  </div></header><!-- MONITOR --><section class="card">  <div class="card-title"><div class="status">
+  <span class="status-dot" id="statusDot"></span>
+  <span id="statusText">Monitor parado</span>
+</div>
 
-<script>
-(function(){
-  const STORAGE_KEY = 'g75-diagnostico-log';
-  const CHECK_URL = 'https://www.gstatic.com/generate_204';
-  const CHECK_INTERVAL_MS = 6000;
-  const CHECK_TIMEOUT_MS = 5000;
+<span class="badge" id="clock">--:--:--</span>
 
-  let log = [];
+  </div>  <div class="main-readout"><div class="network-type" id="networkType">
+  —
+</div>
+
+<div class="connection-text" id="connectionText">
+  Inicie o monitoramento
+</div>
+
+  </div>  <div class="metrics"><div class="metric">
+  <div class="metric-label">Download</div>
+  <div class="metric-value" id="download">—</div>
+</div>
+
+<div class="metric">
+  <div class="metric-label">Latência</div>
+  <div class="metric-value" id="rtt">—</div>
+</div>
+
+<div class="metric">
+  <div class="metric-label">Teste</div>
+  <div class="metric-value" id="testTime">—</div>
+</div>
+
+  </div>  <div class="buttons"><button
+  class="primary"
+  id="toggle">
+  Iniciar monitoramento
+</button>
+
+<button
+  class="warning"
+  id="manual">
+  Marcar perda
+</button>
+
+  </div></section><!-- DEVICE --><section class="card">  <div class="card-title"><h2>Informações do dispositivo</h2>
+
+<span class="badge">BROWSER</span>
+
+  </div>  <div class="device-grid"><div class="info">
+  <small>Conexão</small>
+  <strong id="connection">—</strong>
+</div>
+
+<div class="info">
+  <small>Tipo efetivo</small>
+  <strong id="effective">—</strong>
+</div>
+
+<div class="info">
+  <small>Plataforma</small>
+  <strong id="platform">—</strong>
+</div>
+
+<div class="info">
+  <small>Idioma</small>
+  <strong id="language">—</strong>
+</div>
+
+  </div></section><!-- LOG --><section class="card">  <div class="log-header"><h2>Registro de eventos</h2>
+
+<span class="log-count" id="count">
+  0 eventos
+</span>
+
+  </div>  <div class="log" id="log"><div class="empty">
+  Nenhum evento registrado.
+</div>
+
+  </div>  <div class="actions"><button id="copy">
+  Copiar
+</button>
+
+<button id="download">
+  Baixar TXT
+</button>
+
+<button id="clear">
+  Limpar
+</button>
+
+  </div></section><p class="note">
+  O navegador não possui acesso direto às barras de sinal, intensidade
+  em dBm ou à operadora em todos os dispositivos. Por isso, o NetMonitor
+  utiliza o estado de conexão do navegador, informações disponíveis pela
+  API Network Information e testes reais de conectividade.
+</p></div><div class="toast" id="toast"></div><script>
+
+(() => {
+
+  /* =========================
+     CONFIGURAÇÃO
+  ========================= */
+
+  const STORAGE_KEY = "netmonitor-events-v2";
+
+  const TEST_URL =
+    "https://www.gstatic.com/generate_204";
+
+  const INTERVAL =
+    6000;
+
+  const TIMEOUT =
+    5000;
+
+
+  /* =========================
+     ESTADO
+  ========================= */
+
+  let events = [];
+
   let monitoring = false;
-  let timer = null;
+
+  let intervalId = null;
+
   let startedAt = null;
-  let clockTimer = null;
 
-  const el = {
-    statusDot: document.getElementById('statusDot'),
-    statusLabel: document.getElementById('statusLabel'),
-    clock: document.getElementById('clock'),
-    readout: document.getElementById('readout'),
-    downlink: document.getElementById('downlink'),
-    rtt: document.getElementById('rtt'),
-    since: document.getElementById('since'),
-    toggleBtn: document.getElementById('toggleBtn'),
-    manualBtn: document.getElementById('manualBtn'),
-    logList: document.getElementById('logList'),
-    logEmpty: document.getElementById('logEmpty'),
-    logCount: document.getElementById('logCount'),
-    copyBtn: document.getElementById('copyBtn'),
-    downloadBtn: document.getElementById('downloadBtn'),
-    clearBtn: document.getElementById('clearBtn'),
-    toast: document.getElementById('toast'),
-  };
 
-  function pad(n){ return n.toString().padStart(2,'0'); }
-  function timeStr(d){ return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds()); }
+  /* =========================
+     ELEMENTOS
+  ========================= */
 
-  function showToast(msg){
-    el.toast.textContent = msg;
-    el.toast.classList.add('show');
-    setTimeout(()=> el.toast.classList.remove('show'), 1800);
+  const $ = id =>
+    document.getElementById(id);
+
+  const statusDot =
+    $("statusDot");
+
+  const statusText =
+    $("statusText");
+
+  const clock =
+    $("clock");
+
+  const networkType =
+    $("networkType");
+
+  const connectionText =
+    $("connectionText");
+
+  const download =
+    $("download");
+
+  const rtt =
+    $("rtt");
+
+  const testTime =
+    $("testTime");
+
+  const toggle =
+    $("toggle");
+
+  const manual =
+    $("manual");
+
+  const connection =
+    $("connection");
+
+  const effective =
+    $("effective");
+
+  const platform =
+    $("platform");
+
+  const language =
+    $("language");
+
+  const log =
+    $("log");
+
+  const count =
+    $("count");
+
+  const toast =
+    $("toast");
+
+
+  /* =========================
+     UTILITÁRIOS
+  ========================= */
+
+  function pad(number){
+
+    return String(number)
+      .padStart(2,"0");
+
   }
 
-  function loadLog(){
-    try{
-      const res = localStorage.getItem(STORAGE_KEY);
-      if(res){
-        log = JSON.parse(res);
-      }
-    }catch(e){
-      log = [];
+
+  function getTime(){
+
+    const d =
+      new Date();
+
+    return (
+      pad(d.getHours()) +
+      ":" +
+      pad(d.getMinutes()) +
+      ":" +
+      pad(d.getSeconds())
+    );
+
+  }
+
+
+  function toastMessage(message){
+
+    toast.textContent =
+      message;
+
+    toast.classList.add("show");
+
+    setTimeout(() => {
+
+      toast.classList.remove("show");
+
+    },1800);
+
+  }
+
+
+  /* =========================
+     NETWORK INFORMATION
+  ========================= */
+
+  function getNetwork(){
+
+    const c =
+      navigator.connection ||
+      navigator.mozConnection ||
+      navigator.webkitConnection;
+
+    if(!c){
+
+      return {
+        type:null,
+        downlink:null,
+        rtt:null
+      };
+
     }
-    renderLog();
-  }
 
-  function saveLog(){
-    try{
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(log));
-    }catch(e){
-      // se falhar, o registro continua funcionando só na tela desta sessão
-    }
-  }
-
-  function addEntry(entry){
-    log.unshift(entry);
-    if(log.length > 500) log = log.slice(0, 500);
-    renderLog();
-    saveLog();
-  }
-
-  function renderLog(){
-    el.logCount.textContent = log.length + (log.length === 1 ? ' evento' : ' eventos');
-    if(log.length === 0){
-      el.logList.innerHTML = '';
-      el.logList.appendChild(el.logEmpty);
-      return;
-    }
-    el.logList.innerHTML = '';
-    log.forEach(entry => {
-      const row = document.createElement('div');
-      row.className = 'log-row' + (entry.manual ? ' manual' : '');
-      const dotColor = entry.status === 'ok' ? 'var(--good)' : (entry.status === 'warn' ? 'var(--warn)' : 'var(--bad)');
-      row.innerHTML =
-        '<span class="dot" style="background:' + dotColor + '"></span>' +
-        '<span class="time">' + entry.time + '</span>' +
-        '<span class="desc">' + entry.desc + '</span>' +
-        '<span class="lat">' + (entry.lat || '') + '</span>';
-      el.logList.appendChild(row);
-    });
-  }
-
-  function updateReadout(state, big, downlink, rtt){
-    el.readout.textContent = big;
-    el.readout.style.color = state === 'ok' ? 'var(--good)' : (state === 'warn' ? 'var(--warn)' : (state === 'bad' ? 'var(--bad)' : 'var(--idle)'));
-    el.downlink.textContent = downlink || '—';
-    el.rtt.textContent = rtt || '—';
-  }
-
-  function getConnectionInfo(){
-    const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    if(!c) return null;
     return {
-      effectiveType: c.effectiveType || null,
-      downlink: (typeof c.downlink === 'number') ? c.downlink.toFixed(1) + ' Mbps' : null,
-      rtt: (typeof c.rtt === 'number') ? c.rtt + ' ms' : null,
+
+      type:
+        c.effectiveType ||
+        null,
+
+      downlink:
+        typeof c.downlink === "number"
+        ? c.downlink.toFixed(1) + " Mbps"
+        : null,
+
+      rtt:
+        typeof c.rtt === "number"
+        ? Math.round(c.rtt) + " ms"
+        : null
+
     };
+
   }
 
-  async function activeCheck(){
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), CHECK_TIMEOUT_MS);
-    const t0 = performance.now();
+
+  /* =========================
+     TESTE REAL
+  ========================= */
+
+  async function connectionTest(){
+
+    const controller =
+      new AbortController();
+
+    const timeout =
+      setTimeout(
+        () => controller.abort(),
+        TIMEOUT
+      );
+
+    const start =
+      performance.now();
+
     try{
-      await fetch(CHECK_URL + '?t=' + Date.now(), {
-        mode: 'no-cors',
-        cache: 'no-store',
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-      return { ok: true, ms: Math.round(performance.now() - t0) };
-    }catch(e){
-      clearTimeout(timeoutId);
-      return { ok: false, ms: null };
+
+      await fetch(
+        TEST_URL +
+        "?t=" +
+        Date.now(),
+        {
+          method:"GET",
+          mode:"no-cors",
+          cache:"no-store",
+          signal:controller.signal
+        }
+      );
+
+      clearTimeout(timeout);
+
+      return {
+
+        online:true,
+
+        ms:
+          Math.round(
+            performance.now() -
+            start
+          )
+
+      };
+
+    }catch(error){
+
+      clearTimeout(timeout);
+
+      return {
+
+        online:false,
+
+        ms:null
+
+      };
+
     }
+
   }
 
-  async function runCheck(){
-    const conn = getConnectionInfo();
-    const result = await activeCheck();
-    const now = new Date();
-    const time = timeStr(now);
 
-    if(!result.ok){
-      updateReadout('bad', 'SEM CONEXÃO', conn && conn.downlink, conn && conn.rtt);
-      el.statusDot.style.background = 'var(--bad)';
-      el.statusLabel.textContent = 'Falhou';
-      addEntry({ time, status: 'bad', desc: 'teste ativo falhou (sem resposta em ' + (CHECK_TIMEOUT_MS/1000) + 's)', lat: '' , manual:false});
+  /* =========================
+     INTERFACE
+  ========================= */
+
+  function setStatus(state){
+
+    statusDot.className =
+      "status-dot " +
+      state;
+
+    networkType.className =
+      "network-type " +
+      state;
+
+  }
+
+
+  function updateDevice(){
+
+    const net =
+      getNetwork();
+
+    connection.textContent =
+      navigator.onLine
+      ? "Online"
+      : "Offline";
+
+    effective.textContent =
+      net.type
+      ? net.type.toUpperCase()
+      : "Indisponível";
+
+    platform.textContent =
+      navigator.userAgentData?.platform ||
+      navigator.platform ||
+      "Desconhecido";
+
+    language.textContent =
+      navigator.language ||
+      "—";
+
+  }
+
+
+  function updateMetrics(net){
+
+    download.textContent =
+      net.downlink ||
+      "—";
+
+    rtt.textContent =
+      net.rtt ||
+      "—";
+
+  }
+
+
+  /* =========================
+     EVENTOS
+  ========================= */
+
+  function addEvent(data){
+
+    events.unshift(data);
+
+    if(events.length > 500){
+
+      events =
+        events.slice(0,500);
+
+    }
+
+    saveEvents();
+
+    renderEvents();
+
+  }
+
+
+  function saveEvents(){
+
+    try{
+
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(events)
+      );
+
+    }catch(error){
+
+      console.warn(
+        "Não foi possível salvar eventos.",
+        error
+      );
+
+    }
+
+  }
+
+
+  function loadEvents(){
+
+    try{
+
+      const saved =
+        localStorage.getItem(
+          STORAGE_KEY
+        );
+
+      if(saved){
+
+        const parsed =
+          JSON.parse(saved);
+
+        if(Array.isArray(parsed)){
+
+          events = parsed;
+
+        }
+
+      }
+
+    }catch(error){
+
+      events = [];
+
+    }
+
+    renderEvents();
+
+  }
+
+
+  function renderEvents(){
+
+    count.textContent =
+      events.length +
+      (
+        events.length === 1
+        ? " evento"
+        : " eventos"
+      );
+
+
+    if(events.length === 0){
+
+      log.innerHTML =
+        '<div class="empty">' +
+        'Nenhum evento registrado.' +
+        '</div>';
+
       return;
+
     }
 
-    let big = conn && conn.effectiveType ? conn.effectiveType.toUpperCase() : 'ONLINE';
-    let state = 'ok';
-    if(conn && (conn.effectiveType === '2g' || conn.effectiveType === 'slow-2g')) state = 'warn';
-    if(conn && conn.effectiveType === '3g') state = 'warn';
 
-    updateReadout(state, big, conn && conn.downlink, conn && conn.rtt);
-    el.statusDot.style.background = state === 'ok' ? 'var(--good)' : 'var(--warn)';
-    el.statusLabel.textContent = 'Monitorando';
-    addEntry({
-      time,
-      status: state,
-      desc: 'ok — ' + big + (conn && conn.downlink ? ', ' + conn.downlink : ''),
-      lat: result.ms + ' ms',
-      manual: false
+    log.innerHTML = "";
+
+
+    events.forEach(event => {
+
+      const row =
+        document.createElement("div");
+
+      row.className =
+        "log-row";
+
+
+      const dot =
+        document.createElement("span");
+
+      dot.className =
+        "log-dot";
+
+
+      dot.style.background =
+        event.status === "online"
+        ? "var(--green)"
+        : event.status === "warning"
+        ? "var(--yellow)"
+        : "var(--red)";
+
+
+      const time =
+        document.createElement("span");
+
+      time.className =
+        "log-time";
+
+      time.textContent =
+        event.time;
+
+
+      const description =
+        document.createElement("span");
+
+      description.className =
+        "log-description";
+
+      description.textContent =
+        event.description;
+
+
+      const latency =
+        document.createElement("span");
+
+      latency.className =
+        "log-latency";
+
+      latency.textContent =
+        event.latency || "";
+
+
+      row.append(
+        dot,
+        time,
+        description,
+        latency
+      );
+
+
+      log.appendChild(row);
+
     });
+
   }
 
-  function startMonitoring(){
-    monitoring = true;
-    startedAt = new Date();
-    el.toggleBtn.textContent = 'Parar monitoramento';
-    el.toggleBtn.classList.add('on');
-    el.statusLabel.textContent = 'Monitorando';
-    runCheck();
-    timer = setInterval(runCheck, CHECK_INTERVAL_MS);
-  }
 
-  function stopMonitoring(){
-    monitoring = false;
-    clearInterval(timer);
-    timer = null;
-    el.toggleBtn.textContent = 'Iniciar monitoramento';
-    el.toggleBtn.classList.remove('on');
-    el.statusDot.style.background = 'var(--idle)';
-    el.statusLabel.textContent = 'Parado';
-  }
+  /* =========================
+     MONITORAMENTO
+  ========================= */
 
-  el.toggleBtn.addEventListener('click', () => {
-    if(monitoring) stopMonitoring(); else startMonitoring();
-  });
+  async function check(){
 
-  el.manualBtn.addEventListener('click', () => {
-    const now = new Date();
-    addEntry({ time: timeStr(now), status: 'bad', desc: 'marcado manualmente: sinal sumiu na tela', lat: '', manual: true });
-    showToast('Registrado');
-  });
+    if(!monitoring){
 
-  el.copyBtn.addEventListener('click', async () => {
-    const text = log.map(e => e.time + '  ' + e.status.toUpperCase() + '  ' + e.desc + (e.lat ? '  ' + e.lat : '')).join('\n');
-    try{
-      await navigator.clipboard.writeText(text || 'Sem eventos registrados ainda.');
-      showToast('Copiado');
-    }catch(e){
-      showToast('Não foi possível copiar automaticamente');
+      return;
+
     }
-  });
 
-  el.downloadBtn.addEventListener('click', () => {
-    const text = log.map(e => e.time + '  ' + e.status.toUpperCase() + '  ' + e.desc + (e.lat ? '  ' + e.lat : '')).join('\n');
-    const blob = new Blob([text || 'Sem eventos registrados ainda.'], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'diagnostico-g75-' + Date.now() + '.txt';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  });
 
-  el.clearBtn.addEventListener('click', () => {
-    log = [];
-    renderLog();
-    saveLog();
-    showToast('Registro limpo');
-  });
+    const net =
+      getNetwork();
 
-  window.addEventListener('online', () => {
-    if(monitoring) addEntry({ time: timeStr(new Date()), status: 'ok', desc: 'sistema reportou: conexão voltou', lat: '', manual: false });
-  });
-  window.addEventListener('offline', () => {
-    if(monitoring) addEntry({ time: timeStr(new Date()), status: 'bad', desc: 'sistema reportou: conexão perdida', lat: '', manual: false });
-  });
+    const result =
+      await connectionTest();
 
-  clockTimer = setInterval(() => {
-    const now = new Date();
-    el.clock.textContent = timeStr(now);
-    if(startedAt){
-      const mins = Math.floor((now - startedAt) / 60000);
-      el.since.textContent = mins < 1 ? 'agora' : (mins + ' min');
+
+    const time =
+      getTime();
+
+
+    updateDevice();
+
+    updateMetrics(net);
+
+
+    if(!result.online){
+
+      setStatus("offline");
+
+      networkType.textContent =
+        "OFFLINE";
+
+      connectionText.textContent =
+        "Não foi possível alcançar a internet";
+
+      testTime.textContent =
+        "Falhou";
+
+
+      addEvent({
+
+        time,
+
+        status:"offline",
+
+        description:
+          "Teste de conexão falhou",
+
+        latency:""
+
+      });
+
+      return;
+
     }
-  }, 1000);
 
-  loadLog();
+
+    let state =
+      "online";
+
+
+    if(
+      net.type === "slow-2g" ||
+      net.type === "2g" ||
+      net.type === "3g"
+    ){
+
+      state =
+        "warning";
+
+    }
+
+
+    setStatus(state);
+
+
+    networkType.textContent =
+      net.type
+      ? net.type.toUpperCase()
+      : "ONLINE";
+
+
+    connectionText.textContent =
+      "Conexão ativa";
+
+
+    testTime.textContent =
+      result.ms + " ms";
+
+
+    addEvent({
+
+      time,
+
+      status:state,
+
+      description:
+        "Conexão OK" +
+        (
+          net.type
+          ? " • " +
+            net.type.toUpperCase()
+          : ""
+        ),
+
+      latency:
+        result.ms + " ms"
+
+    });
+
+  }
+
+
+  function start(){
+
+    monitoring =
+      true;
+
+    startedAt =
+      new Date();
+
+
+    toggle.textContent =
+      "Parar monitoramento";
+
+    toggle.classList.add(
+      "stop"
+    );
+
+
+    statusText.textContent =
+      "Monitorando";
+
+
+    check();
+
+
+    intervalId =
+      setInterval(
+        check,
+        INTERVAL
+      );
+
+  }
+
+
+  function stop(){
+
+    monitoring =
+      false;
+
+
+    clearInterval(
+      intervalId
+    );
+
+
+    intervalId =
+      null;
+
+
+    toggle.textContent =
+      "Iniciar monitoramento";
+
+
+    toggle.classList.remove(
+      "stop"
+    );
+
+
+    statusDot.className =
+      "status-dot";
+
+
+    statusText.textContent =
+      "Monitor parado";
+
+
+    networkType.className =
+      "network-type";
+
+
+    networkType.textContent =
+      "—";
+
+
+    connectionText.textContent =
+      "Monitoramento pausado";
+
+  }
+
+
+  /* =========================
+     BOTÕES
+  ========================= */
+
+  toggle.addEventListener(
+    "click",
+    () => {
+
+      if(monitoring){
+
+        stop();
+
+      }else{
+
+        start();
+
+      }
+
+    }
+  );
+
+
+  manual.addEventListener(
+    "click",
+    () => {
+
+      addEvent({
+
+        time:getTime(),
+
+        status:"warning",
+
+        description:
+          "Perda de sinal marcada manualmente",
+
+        latency:""
+
+      });
+
+
+      toastMessage(
+        "Perda registrada"
+      );
+
+    }
+  );
+
+
+  $("clear").addEventListener(
+    "click",
+    () => {
+
+      if(
+        !confirm(
+          "Limpar todo o registro?"
+        )
+      ){
+
+        return;
+
+      }
+
+
+      events = [];
+
+      saveEvents();
+
+      renderEvents();
+
+      toastMessage(
+        "Registro apagado"
+      );
+
+    }
+  );
+
+
+  $("copy").addEventListener(
+    "click",
+    async () => {
+
+      const text =
+        events
+        .map(event =>
+          `${event.time} | ` +
+          `${event.description}` +
+          (
+            event.latency
+            ? ` | ${event.latency}`
+            : ""
+          )
+        )
+        .join("\n");
+
+
+      try{
+
+        await navigator.clipboard.writeText(
+          text ||
+          "Nenhum evento registrado."
+        );
+
+        toastMessage(
+          "Registro copiado"
+        );
+
+      }catch(error){
+
+        toastMessage(
+          "Não foi possível copiar"
+        );
+
+      }
+
+    }
+  );
+
+
+  $("download").addEventListener(
+    "click",
+    () => {
+
+      const text =
+        events
+        .map(event =>
+          `${event.time} | ` +
+          `${event.description}` +
+          (
+            event.latency
+            ? ` | ${event.latency}`
+            : ""
+          )
+        )
+        .join("\n");
+
+
+      const blob =
+        new Blob(
+          [
+            text ||
+            "Nenhum evento registrado."
+          ],
+          {
+            type:"text/plain;charset=utf-8"
+          }
+        );
+
+
+      const url =
+        URL.createObjectURL(blob);
+
+
+      const link =
+        document.createElement("a");
+
+
+      link.href =
+        url;
+
+      link.download =
+        "netmonitor-" +
+        Date.now() +
+        ".txt";
+
+
+      document.body.appendChild(
+        link
+      );
+
+      link.click();
+
+      link.remove();
+
+      URL.revokeObjectURL(
+        url
+      );
+
+    }
+  );
+
+
+  /* =========================
+     ONLINE / OFFLINE
+  ========================= */
+
+  window.addEventListener(
+    "online",
+    () => {
+
+      updateDevice();
+
+      if(monitoring){
+
+        addEvent({
+
+          time:getTime(),
+
+          status:"online",
+
+          description:
+            "Sistema informou que a conexão voltou",
+
+          latency:""
+
+        });
+
+      }
+
+    }
+  );
+
+
+  window.addEventListener(
+    "offline",
+    () => {
+
+      updateDevice();
+
+      if(monitoring){
+
+        addEvent({
+
+          time:getTime(),
+
+          status:"offline",
+
+          description:
+            "Sistema informou perda de conexão",
+
+          latency:""
+
+        });
+
+      }
+
+    }
+  );
+
+
+  /* =========================
+     ATUALIZAÇÃO DO RELÓGIO
+  ========================= */
+
+  setInterval(
+    () => {
+
+      const now =
+        new Date();
+
+      clock.textContent =
+        getTime();
+
+
+      if(startedAt){
+
+        const seconds =
+          Math.floor(
+            (now - startedAt) /
+            1000
+          );
+
+
+        const minutes =
+          Math.floor(
+            seconds / 60
+          );
+
+
+        if(minutes > 0){
+
+          statusText.textContent =
+            "Monitorando • " +
+            minutes +
+            " min";
+
+        }
+
+      }
+
+    },
+    1000
+  );
+
+
+  /* =========================
+     NETWORK INFORMATION CHANGE
+  ========================= */
+
+  const network =
+    navigator.connection ||
+    navigator.mozConnection ||
+    navigator.webkitConnection;
+
+
+  if(network){
+
+    network.addEventListener?.(
+      "change",
+      () => {
+
+        updateDevice();
+
+        if(monitoring){
+
+          addEvent({
+
+            time:getTime(),
+
+            status:"warning",
+
+            description:
+              "Características da conexão mudaram",
+
+            latency:""
+
+          });
+
+        }
+
+      }
+    );
+
+  }
+
+
+  /* =========================
+     INICIALIZAÇÃO
+  ========================= */
+
+  updateDevice();
+
+  loadEvents();
+
+  clock.textContent =
+    getTime();
+
 })();
-</script>
-</body>
-</html>
+
+</script></body>
+  </html>
